@@ -59,24 +59,33 @@ impl Replica {
                 loop {
                     match listener.accept().unwrap() {
                         (socket, addr) => {
-                            // let val = self.
-                            let mut val = cpy_val.lock().unwrap();
+                            let new_val = cpy_val.clone();
                             let mut conn =
                                 net::Conn::new_with_socket(&addr.to_string(), socket).unwrap();
-                            let read_msg = conn.read_msg();
-                            match Protocol::parse(read_msg.clone()) {
-                                Ok(Get(value)) => {
-                                    conn.send_message(val.get(value));
-                                }
-                                Ok(Set(_, _)) => {
-                                    val.send_master(&read_msg);
-                                    val.recieve();
-                                    rx.recv().unwrap();
-                                }
-                                _ => {
-                                    conn.send_message("INVALID_REQUEST\n".to_string());
-                                }
-                            };
+
+                            let mut val = new_val.lock().unwrap();
+                            loop {
+                                let read_msg = conn.read_msg();
+
+                                match Protocol::parse(read_msg.clone()) {
+                                    Ok(Get(value)) => {
+                                        conn.send_message(val.get(value));
+                                    }
+                                    Ok(Set(_, _)) => {
+                                        val.send_master(&read_msg);
+                                        val.recieve();
+                                        rx.recv().unwrap();
+                                    }
+                                    _ => {
+                                        if read_msg == "" {
+                                            //disconnected client
+                                            break;
+                                        } else {
+                                            conn.send_message("INVALID_REQUEST\n".to_string());
+                                        }
+                                    }
+                                };
+                            }
                         }
                     }
                 }
