@@ -50,7 +50,7 @@ impl Replica {
                 let mut val = shared_val.lock().unwrap();
                 let parsed_val = Protocol::parse(msg).unwrap();
                 val.store.set(parsed_val);
-                thread::sleep(Duration::from_secs(2));
+                // thread::sleep(Duration::from_secs(2));
                 tx.send(()).unwrap();
             });
             t.spawn(move || {
@@ -63,8 +63,8 @@ impl Replica {
                             let mut conn =
                                 net::Conn::new_with_socket(&addr.to_string(), socket).unwrap();
 
-                            let mut val = new_val.lock().unwrap();
                             loop {
+                                let mut val = new_val.lock().unwrap();
                                 let read_msg = conn.read_msg();
 
                                 match Protocol::parse(read_msg.clone()) {
@@ -74,6 +74,7 @@ impl Replica {
                                     Ok(Set(_, _)) => {
                                         val.send_master(&read_msg);
                                         val.recieve();
+                                        drop(val);
                                         rx.recv().unwrap();
                                     }
                                     _ => {
