@@ -1,6 +1,10 @@
 use com;
 use redis_store::Protocol;
-use std::sync::{Arc, Mutex};
+use std::{
+    sync::{Arc, Mutex},
+    thread,
+    time::Duration,
+};
 pub struct Master {
     store: redis_store::Store,
     com: com::Server,
@@ -37,7 +41,9 @@ impl Master {
         loop {
             let msg = self.recieve();
             match &msg {
-                Protocol::Get(_) => {
+                Protocol::Get(key) => {
+                    println!("recieved get {key}.. sending back");
+                    thread::sleep(Duration::from_secs(2));
                     self.send(&msg.to_string());
                 }
                 Protocol::Set(_, _) => {
