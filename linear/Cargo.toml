@@ -1,5 +1,5 @@
 [package]
-name = "sequential_consistency"
+name = "linear"
 version = "0.1.0"
 edition = "2021"
 

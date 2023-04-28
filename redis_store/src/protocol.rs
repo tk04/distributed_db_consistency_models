@@ -2,6 +2,7 @@
 pub enum Protocol {
     Get(String),
     Set(String, String), //key, value
+    Ack,
     InvalidRequest,
 }
 impl Protocol {
@@ -16,6 +17,7 @@ impl Protocol {
             Self::Set(key, val) => return format!("SET {}\n{}\n", key, val),
             Self::Get(val) => return format!("GET {}\n", val),
             Self::InvalidRequest => "INVALID_REQUEST\n".to_string(),
+            Self::Ack => "ACK\n".to_string(),
         }
     }
     pub fn parse(value: String) -> Result<Self, String> {
@@ -32,6 +34,7 @@ impl Protocol {
                 return Ok(Self::Set(key, value));
             }
             "INVALID_REQUEST\n" => return Ok(Self::InvalidRequest),
+            "ACK\n" => return Ok(Self::Ack),
             _ => Err("Invalid value".to_string()),
         }
     }

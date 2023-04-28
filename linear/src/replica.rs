@@ -70,6 +70,9 @@ impl Replica {
 
                                 match Protocol::parse(read_msg.clone()) {
                                     Ok(Get(value)) => {
+                                        val.send_master(&read_msg);
+                                        val.recieve();
+
                                         conn.send_message(val.get(value));
                                     }
                                     Ok(Set(_, _)) => {
