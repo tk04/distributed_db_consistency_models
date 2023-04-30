@@ -86,6 +86,7 @@ impl Replica {
                                         val.recieve();
                                         drop(val);
                                         rx.recv().unwrap();
+                                        conn.send_message("OK".to_string());
                                     }
                                     _ => {
                                         if read_msg == "" {
