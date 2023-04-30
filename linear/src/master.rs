@@ -9,11 +9,9 @@ pub struct Master {
     store: redis_store::Store,
     com: com::Server,
     producer: com::Publisher,
-    num_replicas: u16,
-    msg_q: Arc<Mutex<Vec<Protocol>>>,
 }
 impl Master {
-    pub fn new(db_host: &str, master_host: &str, producer_addr: &str, num_replicas: u16) -> Self {
+    pub fn new(db_host: &str, master_host: &str, producer_addr: &str) -> Self {
         let server = com::init_server(master_host);
         let store = redis_store::init(db_host);
         let producer = com::init_pub(producer_addr);
@@ -21,8 +19,6 @@ impl Master {
             store,
             com: server,
             producer,
-            num_replicas,
-            msg_q: Arc::new(Mutex::new(Vec::new())),
         };
     }
     fn recieve(&self) -> Protocol {

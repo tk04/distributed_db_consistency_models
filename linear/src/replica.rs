@@ -11,12 +11,12 @@ use std::thread;
 use std::time::Duration;
 pub struct Replica {
     store: redis_store::Store,
-    com: com::Client,
+    com: net::Conn,
     endpoint: String,
 }
 impl Replica {
     pub fn new(endpoint: &str, db_host: &str, master_host: &str) -> Self {
-        let client = com::init_client(master_host);
+        let client = net::Conn::new(master_host).unwrap();
         let store = redis_store::init(db_host);
         return Self {
             store,
@@ -24,8 +24,8 @@ impl Replica {
             endpoint: endpoint.to_string(),
         };
     }
-    pub fn send_master(&self, msg: &str) {
-        self.com.send(msg);
+    pub fn send_master(&mut self, msg: &str) {
+        self.com.send_message(msg.to_string());
     }
     fn get(&mut self, key: String) -> String {
         match self.store.get(key) {
@@ -35,7 +35,7 @@ impl Replica {
     }
     fn recieve(&self) -> String {
         // receive ack from master
-        return self.com.receive();
+        return self.com.read_msg();
     }
 
     pub fn listen(&mut self, pub_addr: &str) {
@@ -52,6 +52,8 @@ impl Replica {
                 let parsed_val = Protocol::parse(msg).unwrap();
                 val.store.set(parsed_val);
                 // thread::sleep(Duration::from_secs(2));
+                println!("Replica: SEND ACK TO MASTER");
+                val.send_master(&Protocol::Ack.to_string());
                 tx.send(()).unwrap();
             });
             t.spawn(move || {
@@ -70,10 +72,14 @@ impl Replica {
 
                                 match Protocol::parse(read_msg.clone()) {
                                     Ok(Get(value)) => {
+                                        println!("GET {value}");
+                                        println!("SENDING MASTER");
                                         val.send_master(&read_msg);
                                         val.recieve();
+                                        println!("GOT FROM MASTER");
 
                                         conn.send_message(val.get(value));
+                                        val.send_master(&Protocol::Ack.to_string());
                                     }
                                     Ok(Set(_, _)) => {
                                         val.send_master(&read_msg);
