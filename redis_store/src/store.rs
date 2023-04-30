@@ -11,7 +11,7 @@ impl Store {
         return Self { store: con };
     }
     pub fn set(&mut self, value: Protocol) {
-        if let Protocol::Set(key, value) = value {
+        if let Protocol::Set(key, value, _) = value {
             self.store
                 .set::<String, String, String>(key, value)
                 .unwrap();

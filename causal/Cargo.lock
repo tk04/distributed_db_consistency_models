@@ -26,6 +26,7 @@ version = "0.1.0"
 dependencies = [
  "com",
  "net",
+ "nodes",
  "redis_store",
 ]
 
@@ -284,6 +285,15 @@ dependencies = [
  "cc",
  "cfg-if 0.1.10",
  "libc",
+]
+
+[[package]]
+name = "nodes"
+version = "0.1.0"
+dependencies = [
+ "com",
+ "net",
+ "redis_store",
 ]
 
 [[package]]

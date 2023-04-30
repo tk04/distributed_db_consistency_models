@@ -28,8 +28,8 @@ impl Conn {
         let mut buf = String::new();
         reader.read_line(&mut buf).unwrap();
         match redis_store::Protocol::parse(buf.clone()) {
-            Ok(Get(key)) => return buf,
-            Ok(Set(key, val)) => {
+            Ok(Get(key, _)) => return buf,
+            Ok(Set(key, val, _)) => {
                 let mut line2 = String::new();
                 reader.read_line(&mut line2).unwrap();
                 buf += line2.as_str();

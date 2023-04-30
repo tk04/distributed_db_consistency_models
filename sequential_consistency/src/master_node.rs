@@ -30,9 +30,9 @@ impl MasterNode {
                             let mut socket = conn.get(&msg.1).unwrap().lock().unwrap();
                             let mut num_waits = 0;
                             match msg.0 {
-                                Set(k, v) => {
+                                Set(k, v, _) => {
                                     println!("SET VALUE {k} to {v}");
-                                    let p = Protocol::Set(k, v);
+                                    let p = Protocol::Set(k, v, 0);
                                     store.set(p.clone());
                                     self.master.publish(&p.to_string());
                                     socket.send_message(p.to_string());

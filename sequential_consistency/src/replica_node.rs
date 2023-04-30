@@ -52,10 +52,10 @@ impl ReplicaNode {
                                 let read_msg = conn.read_msg();
 
                                 match Protocol::parse(read_msg.clone()) {
-                                    Ok(Get(value)) => {
+                                    Ok(Get(value, _)) => {
                                         conn.send_message(val.get(value));
                                     }
-                                    Ok(Set(_, _)) => {
+                                    Ok(Set(_, _, _)) => {
                                         val.send_master(&read_msg);
                                         val.recieve();
                                         drop(val);

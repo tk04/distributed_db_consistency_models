@@ -8,13 +8,15 @@ use std::{
 use Protocol::{Ack, Get, Set};
 pub struct MasterNode {
     master: Master,
+    ts: usize,
 }
 impl MasterNode {
     pub fn new(db_host: &str, master_host: &str, producer_addr: &str, num_nodes: u32) -> Self {
         let master = Master::new(db_host, master_host, producer_addr, num_nodes);
-        return Self { master };
+        return Self { master, ts: 0 };
     }
-    pub fn listen(&self) {
+
+    pub fn listen(&mut self) {
         thread::scope(|t| {
             t.spawn(|| self.master.receive());
             t.spawn(|| {
@@ -29,15 +31,10 @@ impl MasterNode {
                             let mut socket = conn.get(&msg.1).unwrap().lock().unwrap();
                             let mut num_waits = 0;
                             match msg.0 {
-                                Get(key, ts) => {
-                                    println!("GOT GET {key}");
-                                    socket.send_message(Protocol::Get(key, 0).to_string());
-                                    // wait for acks
-                                    num_waits = 1;
-                                }
-                                Set(k, v, ts) => {
+                                Set(k, v, _) => {
                                     println!("SET VALUE {k} to {v}");
-                                    let p = Protocol::Set(k, v, 0);
+                                    self.ts += 1;
+                                    let p = Protocol::Set(k, v, self.ts);
                                     store.set(p.clone());
                                     self.master.publish(&p.to_string());
                                     socket.send_message(p.to_string());
