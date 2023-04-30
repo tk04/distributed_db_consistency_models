@@ -1,46 +1,26 @@
-// use crate::net;
+use nodes::Replica;
+
 use com;
 use com::Sub;
 use net;
-use redis_store::Protocol::{Get, Set};
+use redis_store::Protocol::{Ack, Get, Set};
 use redis_store::{self, Protocol};
 use std::net::TcpListener;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
-pub struct Replica {
-    store: redis_store::Store,
-    com: net::Conn,
-    endpoint: String,
-}
-impl Replica {
-    pub fn new(endpoint: &str, db_host: &str, master_host: &str) -> Self {
-        let client = net::Conn::new(master_host).unwrap();
-        let store = redis_store::init(db_host);
-        return Self {
-            store,
-            com: client,
-            endpoint: endpoint.to_string(),
-        };
-    }
-    pub fn send_master(&mut self, msg: &str) {
-        self.com.send_message(msg.to_string());
-    }
-    fn get(&mut self, key: String) -> String {
-        match self.store.get(key) {
-            Ok(value) => value,
-            _ => "INVALID_KEY\n".to_string(),
-        }
-    }
-    fn recieve(&self) -> String {
-        // receive ack from master
-        return self.com.read_msg();
-    }
 
+pub struct ReplicaNode {
+    replica: Replica,
+}
+impl ReplicaNode {
+    pub fn new(endpoint: &str, db_host: &str, master_host: &str) -> Self {
+        let replica = Replica::new(endpoint, db_host, master_host);
+        return Self { replica };
+    }
     pub fn listen(&mut self, pub_addr: &str) {
-        let endpoint = self.endpoint.clone();
-        let shared_val = Arc::new(Mutex::new(self));
+        let endpoint = self.replica.endpoint.clone();
+        let shared_val = Arc::new(Mutex::new(&mut self.replica));
         let cpy_val = shared_val.clone();
 
         let sub = Sub::new(pub_addr);
@@ -53,7 +33,7 @@ impl Replica {
                 val.store.set(parsed_val);
                 // thread::sleep(Duration::from_secs(2));
                 println!("Replica: SEND ACK TO MASTER");
-                val.send_master(&Protocol::Ack.to_string());
+                val.send_master(&Ack.to_string());
                 tx.send(()).unwrap();
             });
             t.spawn(move || {
@@ -79,7 +59,7 @@ impl Replica {
                                         println!("GOT FROM MASTER");
 
                                         conn.send_message(val.get(value));
-                                        val.send_master(&Protocol::Ack.to_string());
+                                        val.send_master(&Ack.to_string());
                                     }
                                     Ok(Set(_, _)) => {
                                         val.send_master(&read_msg);

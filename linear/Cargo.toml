@@ -9,3 +9,4 @@ edition = "2021"
 com= {path =  "../com"}
 redis_store= {path =  "../redis_store"}
 net={path = "../net"}
+nodes={path = "../nodes"}
