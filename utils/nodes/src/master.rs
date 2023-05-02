@@ -2,11 +2,10 @@ use net;
 use redis_store::Protocol;
 use std::collections::{HashMap, VecDeque};
 use std::net::TcpListener;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::{channel, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-use Protocol::{Ack, Get, Set};
 pub struct Master {
     pub store: Arc<Mutex<redis_store::Store>>,
     pub socket: TcpListener,
@@ -161,7 +160,7 @@ pub fn handle_msg(
         drop(connection);
         drop(q);
         println!("WAITING FOR MSG TO BE PROCESSED");
-        receiver.recv();
+        receiver.recv().unwrap();
         // dont read from this connection again until everything has been processed
     }
 }

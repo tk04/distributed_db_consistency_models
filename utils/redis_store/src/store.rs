@@ -26,4 +26,9 @@ impl Store {
             Err(_) => Err("Key not Found".to_string()),
         }
     }
+    pub fn flush_db(&mut self) {
+        let _: () = redis::cmd("FLUSHALL").query(&mut self.store).unwrap();
+        println!("------------------finished flushing-------------");
+        return;
+    }
 }

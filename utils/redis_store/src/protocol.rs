@@ -4,6 +4,7 @@ pub enum Protocol {
     Set(String, String, usize),
     InvalidRequest,
     Ack,
+    FlushAll,
 }
 impl Protocol {
     pub fn get(value: String, ts: usize) -> Self {
@@ -18,6 +19,7 @@ impl Protocol {
             Self::Get(val, ts) => return format!("GET {} {}\n", val, ts),
             Self::InvalidRequest => "INVALID_REQUEST\n".to_string(),
             Self::Ack => "ACK\n".to_string(),
+            Self::FlushAll => "FLUSH_ALL\n".to_string(),
         }
     }
     pub fn get_ts(&self) -> usize {
@@ -53,6 +55,7 @@ impl Protocol {
             }
             "INVALID_REQUEST" => return Ok(Self::InvalidRequest),
             "ACK" => return Ok(Self::Ack),
+            "FLUSH_ALL" => return Ok(Self::FlushAll),
             _ => Err("Invalid value".to_string()),
         }
     }

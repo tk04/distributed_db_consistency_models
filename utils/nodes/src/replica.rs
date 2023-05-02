@@ -1,14 +1,6 @@
 // use crate::net;
-use com;
-use com::Sub;
 use net;
-use redis_store::Protocol::{Get, Set};
-use redis_store::{self, Protocol};
-use std::net::TcpListener;
-use std::sync::mpsc;
-use std::sync::{Arc, Mutex};
-use std::thread;
-use std::time::Duration;
+use redis_store;
 pub struct Replica {
     pub store: redis_store::Store,
     pub com: net::Conn,

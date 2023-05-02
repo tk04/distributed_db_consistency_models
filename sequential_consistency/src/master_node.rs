@@ -1,11 +1,7 @@
 use nodes::Master;
 use redis_store::Protocol;
-use std::{
-    sync::{Arc, Mutex},
-    thread,
-    time::Duration,
-};
-use Protocol::{Ack, Get, Set};
+use std::{thread, time::Duration};
+use Protocol::{Ack, Set};
 pub struct MasterNode {
     master: Master,
 }
@@ -24,6 +20,8 @@ impl MasterNode {
                     let mut q = self.master.msg_q.lock().unwrap();
                     if q.len() > 0 {
                         if q.get(0).unwrap().0 != Ack {
+                            //simulate network latency
+                            thread::sleep(Duration::from_millis(500));
                             let msg = q.pop_front().unwrap();
                             drop(q);
                             let conn = self.master.connections.lock().unwrap();
@@ -49,7 +47,6 @@ impl MasterNode {
                             }
 
                             println!("MESSAGE PROCESSED SUCCESFFULY, SEND CONRTOL BACK");
-                            //handle msg
                         }
                     } else {
                         drop(q);

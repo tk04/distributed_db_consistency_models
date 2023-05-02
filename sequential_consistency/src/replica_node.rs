@@ -18,6 +18,9 @@ impl ReplicaNode {
         let replica = Replica::new(endpoint, db_host, master_host);
         return Self { replica };
     }
+    pub fn flush_kv(&mut self) {
+        self.replica.store.flush_db();
+    }
 
     pub fn listen(&mut self, pub_addr: &str) {
         let endpoint = self.replica.endpoint.clone();
@@ -48,18 +51,24 @@ impl ReplicaNode {
                                 net::Conn::new_with_socket(&addr.to_string(), socket).unwrap();
 
                             loop {
-                                let mut val = new_val.lock().unwrap();
                                 let read_msg = conn.read_msg();
 
                                 match Protocol::parse(read_msg.clone()) {
                                     Ok(Get(value, _)) => {
+                                        let mut val = new_val.lock().unwrap();
                                         conn.send_message(val.get(value));
                                     }
                                     Ok(Set(_, _, _)) => {
+                                        let mut val = new_val.lock().unwrap();
                                         val.send_master(&read_msg);
                                         val.recieve();
                                         drop(val);
                                         rx.recv().unwrap();
+                                        conn.send_message("OK".to_string());
+                                    }
+                                    Ok(Protocol::FlushAll) => {
+                                        let mut val = new_val.lock().unwrap();
+                                        val.store.flush_db();
                                         conn.send_message("OK".to_string());
                                     }
                                     _ => {
