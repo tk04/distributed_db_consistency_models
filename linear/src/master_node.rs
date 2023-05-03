@@ -1,10 +1,6 @@
 use nodes::Master;
 use redis_store::Protocol;
-use std::{
-    sync::{Arc, Mutex},
-    thread,
-    time::Duration,
-};
+use std::{thread, time::Duration};
 use Protocol::{Ack, Get, Set};
 pub struct MasterNode {
     master: Master,
@@ -29,14 +25,12 @@ impl MasterNode {
                             let mut socket = conn.get(&msg.1).unwrap().lock().unwrap();
                             let mut num_waits = 0;
                             match msg.0 {
-                                Get(key, ts) => {
-                                    println!("GOT GET {key}");
+                                Get(key, _) => {
                                     socket.send_message(Protocol::Get(key, 0).to_string());
                                     // wait for acks
                                     num_waits = 1;
                                 }
-                                Set(k, v, ts) => {
-                                    println!("SET VALUE {k} to {v}");
+                                Set(k, v, _) => {
                                     let p = Protocol::Set(k, v, 0);
                                     store.set(p.clone());
                                     self.master.publish(&p.to_string());
@@ -49,11 +43,9 @@ impl MasterNode {
                             drop(conn);
                             msg.2.send(()).unwrap();
                             if num_waits > 0 {
-                                println!("waiting for acks");
                                 self.master.wait_for_acks(num_waits);
                             }
 
-                            println!("MESSAGE PROCESSED SUCCESFFULY, SEND CONRTOL BACK");
                             //handle msg
                         }
                     } else {
