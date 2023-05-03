@@ -47,11 +47,11 @@ impl ReplicaNode {
                                 net::Conn::new_with_socket(&addr.to_string(), socket).unwrap();
 
                             loop {
-                                let mut val = new_val.lock().unwrap();
                                 let read_msg = conn.read_msg();
 
                                 match Protocol::parse(read_msg.clone()) {
                                     Ok(Get(value, _)) => {
+                                        let mut val = new_val.lock().unwrap();
                                         println!("GET {value}");
                                         println!("SENDING MASTER");
                                         val.send_master(&read_msg);
@@ -62,6 +62,7 @@ impl ReplicaNode {
                                         val.send_master(&Ack.to_string());
                                     }
                                     Ok(Set(_, _, _)) => {
+                                        let mut val = new_val.lock().unwrap();
                                         val.send_master(&read_msg);
                                         val.recieve();
                                         drop(val);

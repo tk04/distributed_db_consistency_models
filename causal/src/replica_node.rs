@@ -5,7 +5,6 @@ use com::Sub;
 use net;
 use redis_store::Protocol::{Ack, Get, Set};
 use redis_store::{self, Protocol};
-use std::cell::RefCell;
 use std::net::TcpListener;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
@@ -23,7 +22,7 @@ impl ReplicaNode {
 
     pub fn listen(&mut self, pub_addr: &str) {
         let endpoint = self.replica.endpoint.clone();
-        let mut shared_val = Arc::new(Mutex::new(self));
+        let shared_val = Arc::new(Mutex::new(self));
         let cpy_val = shared_val.clone();
 
         let sub = Sub::new(pub_addr);
@@ -51,12 +50,11 @@ impl ReplicaNode {
                                 net::Conn::new_with_socket(&addr.to_string(), socket).unwrap();
 
                             loop {
-                                let mut val = new_val.lock().unwrap();
-                                let mut ts = val.ts;
                                 let read_msg = conn.read_msg();
 
                                 match Protocol::parse(read_msg.clone()) {
                                     Ok(Get(value, ts)) => {
+                                        let mut val = new_val.lock().unwrap();
                                         while ts > val.ts {
                                             drop(val);
                                             rx.recv().unwrap();
@@ -64,15 +62,19 @@ impl ReplicaNode {
                                         }
                                         conn.send_message(val.replica.get(value));
                                     }
-                                    Ok(Set(k, v, _)) => {
-                                        ts += 1;
-                                        let setCmd = Protocol::Set(k, v, ts);
+                                    Ok(Set(_k, _v, _)) => {
+                                        let mut val = new_val.lock().unwrap();
                                         val.replica.send_master(&read_msg);
                                         val.replica.recieve();
                                         drop(val);
                                         rx.recv().unwrap();
                                         val = new_val.lock().unwrap();
                                         conn.send_message(format!("OK {}", val.ts));
+                                    }
+                                    Ok(Protocol::FlushAll) => {
+                                        let mut val = new_val.lock().unwrap();
+                                        val.replica.store.flush_db();
+                                        conn.send_message("OK".to_string());
                                     }
                                     _ => {
                                         if read_msg == "" {

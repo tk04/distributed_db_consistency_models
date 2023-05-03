@@ -1,11 +1,7 @@
 use nodes::Master;
 use redis_store::Protocol;
-use std::{
-    sync::{Arc, Mutex},
-    thread,
-    time::Duration,
-};
-use Protocol::{Ack, Get, Set};
+use std::{thread, time::Duration};
+use Protocol::{Ack, Set};
 pub struct MasterNode {
     master: Master,
     ts: usize,
