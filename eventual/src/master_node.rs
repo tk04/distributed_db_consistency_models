@@ -24,6 +24,7 @@ impl MasterNode {
                     let mut q = self.master.msg_q.lock().unwrap();
                     if q.len() > 0 {
                         if q.get(0).unwrap().0 != Ack {
+                            thread::sleep(Duration::from_millis(300));
                             let msg = q.pop_front().unwrap();
                             drop(q);
                             let conn = self.master.connections.lock().unwrap();

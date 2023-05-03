@@ -3,13 +3,11 @@ use nodes::Replica;
 use com;
 use com::Sub;
 use net;
-use redis_store::Protocol::{Ack, Get, Set};
-use redis_store::{self, Protocol};
+use redis_store::Protocol;
+use redis_store::Protocol::{Get, Set};
 use std::net::TcpListener;
-use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
 
 pub struct ReplicaNode {
     replica: Replica,
@@ -33,6 +31,7 @@ impl ReplicaNode {
                 let mut val = shared_val.lock().unwrap();
                 let parsed_val = Protocol::parse(msg).unwrap();
                 val.store.set(parsed_val);
+                println!("-----------set value---------");
                 // thread::sleep(Duration::from_secs(5));
                 // tx.send(()).unwrap();
             });
@@ -47,18 +46,24 @@ impl ReplicaNode {
                                 net::Conn::new_with_socket(&addr.to_string(), socket).unwrap();
 
                             loop {
-                                let mut val = new_val.lock().unwrap();
                                 let read_msg = conn.read_msg();
 
                                 match Protocol::parse(read_msg.clone()) {
                                     Ok(Get(value, _)) => {
+                                        let mut val = new_val.lock().unwrap();
                                         conn.send_message(val.get(value));
                                     }
                                     Ok(Set(_, _, _)) => {
+                                        let mut val = new_val.lock().unwrap();
                                         val.send_master(&read_msg);
                                         // val.recieve();
                                         drop(val);
                                         // rx.recv().unwrap();
+                                        conn.send_message("OK".to_string());
+                                    }
+                                    Ok(Protocol::FlushAll) => {
+                                        let mut val = new_val.lock().unwrap();
+                                        val.store.flush_db();
                                         conn.send_message("OK".to_string());
                                     }
                                     _ => {
